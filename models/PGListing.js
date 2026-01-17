@@ -78,6 +78,12 @@ const PGListingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
+    subscriptionStatus: {
+      type: String,
+      enum: ["active", "inactive", "expired"],
+      default: "inactive"
+    }
   },
   { timestamps: true }
 );

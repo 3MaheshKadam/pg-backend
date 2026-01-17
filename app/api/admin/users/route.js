@@ -22,20 +22,65 @@ async function isAdmin(req) {
     }
 }
 
-// GET: List all pending users (Owners awaiting approval)
+// GET: List all users (Optionally filtered by role/status/subscription)
 export async function GET(req) {
     try {
         await dbConnect();
+        const { searchParams } = new URL(req.url);
+        const role = searchParams.get("role");
+        const status = searchParams.get("status");
+
+        // New Filter: Subscription Status (active/expired)
+        const subStatus = searchParams.get("subStatus");
 
         // Check Admin Authorization
         if (!(await isAdmin(req))) {
             return NextResponse.json({ message: "Forbidden: Admins only" }, { status: 403 });
         }
 
-        const pendingUsers = await User.find({ status: "pending" }).select("-password");
+        const query = {};
+        if (role) query.role = role;
+        if (status) query.status = status;
 
-        return NextResponse.json({ users: pendingUsers });
+        // Direct DB Filtering (Efficient)
+        if (subStatus) query.subscriptionStatus = subStatus;
+
+        // Fetch Users - Now sorting by Subscription Expiry is possible too!
+        const users = await User.find(query)
+            .select("-password")
+            .sort({ subscriptionExpiry: -1, createdAt: -1 });
+
+        // Lazy Load Plan Name + Check Expiry
+        const usersWithSub = await Promise.all(users.map(async (user) => {
+            // Lazy Status Check (Edge case: Status says active but date expired today)
+            let currentStatus = user.subscriptionStatus || "inactive";
+            if (currentStatus === "active" && user.subscriptionExpiry && new Date(user.subscriptionExpiry) < new Date()) {
+                currentStatus = "expired";
+            }
+
+            // Only fetch plan details if active
+            let planName = null;
+            if (currentStatus === "active") {
+                const sub = await import("@/models/OwnerSubscription").then(mod => mod.default.findOne({
+                    ownerId: user._id,
+                    status: "active"
+                }).sort({ createdAt: -1 }).populate("planId", "name"));
+                if (sub) planName = sub.planId?.name;
+            }
+
+            return {
+                ...user.toObject(),
+                subscription: {
+                    status: currentStatus.toUpperCase(),
+                    planName: planName,
+                    validTill: user.subscriptionExpiry ? new Date(user.subscriptionExpiry).toISOString().split('T')[0] : null
+                }
+            };
+        }));
+
+        return NextResponse.json({ users: usersWithSub });
     } catch (error) {
+        console.error("Fetch Users Error:", error);
         return NextResponse.json({ message: "Server error" }, { status: 500 });
     }
 }

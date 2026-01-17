@@ -36,6 +36,14 @@ const UserSchema = new mongoose.Schema(
                 return this.role === "USER" || this.role === "ADMIN" ? "approved" : "pending";
             },
         },
+        subscriptionStatus: {
+            type: String,
+            enum: ["active", "inactive", "expired"],
+            default: "inactive"
+        },
+        subscriptionExpiry: {
+            type: Date
+        }
     },
     { timestamps: true }
 );

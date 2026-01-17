@@ -17,7 +17,7 @@ const MessSubscriptionSchema = new mongoose.Schema(
 
     plan: {
       planId: {
-        type: Number,
+        type: mongoose.Schema.Types.ObjectId,
         required: true,
       },
       name: {

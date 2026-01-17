@@ -35,24 +35,42 @@ export async function POST(req) {
             return NextResponse.json({ message: "Mess not found" }, { status: 404 });
         }
 
-        // Calculate End Date (Mocking 30 days for now, ideally comes from plan details)
-        const start = new Date(startDate);
+        // Calculate End Date
+        let start;
+        // Check if date is in DD/MM/YYYY format (contains /)
+        if (startDate && startDate.includes('/')) {
+            const [day, month, year] = startDate.split('/');
+            // Check if parts are valid
+            if (day && month && year) {
+                start = new Date(`${year}-${month}-${day}`);
+            } else {
+                start = new Date(startDate); // Fallback
+            }
+        } else {
+            // Assume Standard ISO YYYY-MM-DD
+            start = new Date(startDate);
+        }
+
+        if (isNaN(start.getTime())) {
+            return NextResponse.json({ message: "Invalid Date Format. Please use YYYY-MM-DD or DD/MM/YYYY" }, { status: 400 });
+        }
+
         const end = new Date(start);
-        end.setDate(start.getDate() + 30);
+        end.setDate(start.getDate() + 30); // Default 30 days, should come from plan.duration ideally
 
         const newSubscription = await MessSubscription.create({
             messId,
-            ownerId: mess.ownerId, // Capture Owner ID for isolation
+            ownerId: mess.ownerId,
             plan: {
-                planId: Number(planId),
+                planId, // Passed as string/ObjectId, schema handles it
                 name: planName,
-                meals: ["Lunch", "Dinner"], // Defaulting, should come from selected plan details
+                meals: ["Lunch", "Dinner"],
                 duration: "30 days",
-                price: Number(price.replace(/[^0-9]/g, '')) // Remove non-numeric chars
+                price: Number(String(price).replace(/[^0-9]/g, ''))
             },
             startDate: start,
             endDate: end,
-            type: "Veg", // Default
+            type: "Veg",
             personalInfo: {
                 name: customerName,
                 phone,
@@ -60,8 +78,8 @@ export async function POST(req) {
                 address
             },
             payment: {
-                amount: Number(price.replace(/[^0-9]/g, '')),
-                paymentStatus: "paid" // Assuming immediate payment mock
+                amount: Number(String(price).replace(/[^0-9]/g, '')),
+                paymentStatus: "paid"
             },
             status: "active",
             createdBy: userId

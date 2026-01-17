@@ -46,6 +46,11 @@ const MessSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        subscriptionStatus: {
+            type: String,
+            enum: ["active", "inactive", "expired"],
+            default: "inactive"
+        }
     },
     { timestamps: true }
 );

@@ -39,7 +39,8 @@ export async function GET(req) {
             reviews: 234, // Mock
             type: m.foodTypes.includes("nonveg") ? "Both" : "Veg",
             meals: Object.keys(m.mealTypes).filter(k => m.mealTypes[k]).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
-            subscribers: "120 active" // Mock
+            subscribers: "120 active", // Mock
+            subscriptionStatus: m.subscriptionStatus || "inactive"
         }));
 
         return NextResponse.json(formattedMesses);
