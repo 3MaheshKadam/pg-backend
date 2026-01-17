@@ -23,6 +23,16 @@ const UserSchema = new mongoose.Schema(
             type: String,
             required: [true, "Please provide a phone number"],
         },
+        address: {
+            type: String,
+        },
+        gender: {
+            type: String,
+            enum: ["male", "female", "other"],
+        },
+        profileImage: {
+            type: String, // URL from Cloudinary
+        },
         role: {
             type: String,
             enum: ["USER", "PG_OWNER", "MESS_OWNER", "ADMIN"],

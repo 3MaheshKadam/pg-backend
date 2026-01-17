@@ -9,8 +9,12 @@ export async function GET(req) {
 
         // Optional: Filter by Location or Type via query params
         const { searchParams } = new URL(req.url);
-        const search = searchParams.get("search"); // e.g., "Pune"
-        console.log("start")
+        const search = searchParams.get("search");
+        const type = searchParams.get("type");
+        const minPrice = searchParams.get("minPrice");
+        const maxPrice = searchParams.get("maxPrice");
+        const amenities = searchParams.get("amenities"); // comma separated
+
         const query = {
             approved: true,
             status: "active"
@@ -19,8 +23,27 @@ export async function GET(req) {
         if (search) {
             query.$or = [
                 { location: { $regex: search, $options: "i" } },
-                { name: { $regex: search, $options: "i" } }
+                { name: { $regex: search, $options: "i" } },
+                { address: { $regex: search, $options: "i" } } // Added address search
             ];
+        }
+
+        if (type) {
+            // Basic case-insensitive match for type (Boys, Girls, Co-living)
+            query.type = { $regex: new RegExp(`^${type}$`, "i") };
+        }
+
+        if (minPrice || maxPrice) {
+            query["pricing.rentMin"] = {};
+            if (minPrice) query["pricing.rentMin"].$gte = Number(minPrice);
+            if (maxPrice) query["pricing.rentMin"].$lte = Number(maxPrice);
+        }
+
+        if (amenities) {
+            const amenitiesList = amenities.split(",");
+            amenitiesList.forEach(amenity => {
+                query[`amenities.${amenity.trim()}`] = true;
+            });
         }
 
         // 1. Fetch Listings

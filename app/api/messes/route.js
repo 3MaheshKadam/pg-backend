@@ -8,6 +8,7 @@ export async function GET(req) {
 
         const { searchParams } = new URL(req.url);
         const search = searchParams.get("search");
+        const type = searchParams.get("type"); // veg, non-veg
 
         const query = {
             approved: true,
@@ -19,6 +20,19 @@ export async function GET(req) {
                 { address: { $regex: search, $options: "i" } },
                 { name: { $regex: search, $options: "i" } }
             ];
+        }
+
+        if (type) {
+            // type matches 'veg' or 'nonveg' in foodTypes array
+            if (type.toLowerCase() === "veg") {
+                // Check if it includes 'veg' but implies strict veg? 
+                // Usually means foodTypes contains "veg" and NOT "nonveg" if strict?
+                // Or just contains "veg"? 
+                // Based on req "veg | non-veg", let's assume filtering by available food type.
+                query.foodTypes = { $in: ["veg"] };
+            } else if (type.toLowerCase() === "non-veg" || type.toLowerCase() === "nonveg") {
+                query.foodTypes = { $in: ["nonveg"] };
+            }
         }
 
         const messes = await Mess.find(query)
