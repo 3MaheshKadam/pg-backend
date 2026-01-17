@@ -8,16 +8,23 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key_dev";
 
 // Helper to verify Admin
+// Helper to verify Admin
 async function isAdmin(req) {
     try {
         const authHeader = req.headers.get("authorization");
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.warn("Auth Failed: No Bearer token");
             return false;
         }
         const token = authHeader.split(" ")[1];
         const decoded = jwt.verify(token, JWT_SECRET);
-        return decoded.role === "ADMIN";
+        if (decoded.role !== "ADMIN") {
+            console.warn(`Auth Failed: User ${decoded.userId} is ${decoded.role}, not ADMIN`);
+            return false;
+        }
+        return true;
     } catch (error) {
+        console.error("Auth Token Verification Error:", error.message);
         return false;
     }
 }
