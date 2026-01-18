@@ -1,16 +1,24 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import MessSubscription from "@/models/MessSubscription";
+import { verifyAuth } from "@/lib/auth";
 
 export async function GET(req) {
     try {
         await dbConnect();
-        // Filter by Mess ID (from Token in real app)
+
+        // 1. Verify Auth
+        const decoded = await verifyAuth();
+        if (!decoded || decoded.role !== "MESS_OWNER") {
+            return NextResponse.json({ message: "Unauthorized. Mess Owners only." }, { status: 403 });
+        }
+
+        // Filter by Mess ID (from Token)
         const { searchParams } = new URL(req.url);
         const type = searchParams.get("type"); // Optional filter
 
-        // Mocking messId logic
-        const query = {}; // Add messId: ...
+        // Filter by Owner ID
+        const query = { ownerId: decoded.userId };
 
         if (type) query.type = type;
 
