@@ -3,12 +3,19 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import PGListing from "@/models/PGListing";
 import bcrypt from "bcryptjs";
-import { saveFile } from "@/lib/upload";
+import Link from "next/link"; // Unused but keeping structure or removing unused imports
+// import { saveFile } from "@/lib/upload"; // Removed saveFile import
 
 export async function POST(req) {
     try {
         await dbConnect();
         const formData = await req.formData();
+
+        // DEBUG LOGS
+        console.log("----- PG ONBOARDING REQ RECEIVED -----");
+        const logData = {};
+        formData.forEach((value, key) => logData[key] = value);
+        console.log("FormData:", JSON.stringify(logData, null, 2));
 
         // Extractions
         const ownerName = formData.get("ownerName");
@@ -18,6 +25,7 @@ export async function POST(req) {
 
         // PG Details
         const pgName = formData.get("pgName");
+        const type = formData.get("type"); // "Boys", "Girls", "Co-living"
         const address = formData.get("address");
         const location = formData.get("city"); // Mapping city to location
         const totalRooms = formData.get("totalRooms");
@@ -31,7 +39,7 @@ export async function POST(req) {
         const idProof = formData.get("idProof");
         const propertyProof = formData.get("propertyProof");
 
-        if (!ownerName || !email || !password || !pgName || !address) {
+        if (!ownerName || !email || !password || !pgName || !address || !type) {
             return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
         }
 
@@ -60,13 +68,10 @@ export async function POST(req) {
             }
         }
 
-        // 2. Upload Files
-        // Note: Schema for PGListing doesn't have fields for these proofs yet.
-        // If we need to store them, we should update the PGListing schema. 
-        // FOR NOW: We upload them but might not save references if schema doesn't support.
-        // Let's assume we just want to verify they upload.
-        await saveFile(idProof, "proofs");
-        await saveFile(propertyProof, "proofs");
+        // 2. Upload Files - HANDLED BY CLIENT (Cloudinary)
+        // We expect URLs strings now, not Files.
+        const idProofUrl = idProof; // Assuming these are now passed as URL strings
+        const propertyProofUrl = propertyProof;
 
         // 3. Create PG Listing
         let parsedAmenities = {};
@@ -76,7 +81,7 @@ export async function POST(req) {
 
         const newListing = await PGListing.create({
             name: pgName,
-            type: "Co-living", // Defaulting, or need field
+            type: type, // "Boys", "Girls", "Co-living"
             location: location || address,
             address: address,
             totalRooms: Number(totalRooms) || 0,
@@ -90,7 +95,12 @@ export async function POST(req) {
             description: `Owner: ${ownerName}, Located in ${location || address}`,
             ownerId: user._id,
             status: "inactive",
-            approved: false // Explicitly require Admin Approval
+            status: "inactive",
+            approved: false, // Explicitly require Admin Approval
+            documents: {
+                idProof: idProofUrl,
+                propertyProof: propertyProofUrl
+            }
         });
 
         return NextResponse.json({

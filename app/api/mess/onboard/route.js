@@ -3,7 +3,8 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import Mess from "@/models/Mess";
 import bcrypt from "bcryptjs";
-import { saveFile } from "@/lib/upload";
+import Link from "next/link"; // Unused but keeping structure
+// import { saveFile } from "@/lib/upload"; // Removed saveFile import
 
 export async function POST(req) {
     try {
@@ -53,8 +54,9 @@ export async function POST(req) {
             });
         }
 
-        // 2. Upload License
-        const licenseUrl = await saveFile(licenseFile, "licenses");
+        // 2. Upload License - HANDLED BY CLIENT (Cloudinary)
+        // We expect URL string now, not File.
+        const licenseUrl = licenseFile; // Assuming this is now passed as URL string
 
         // 3. Create Mess
         const newMess = await Mess.create({

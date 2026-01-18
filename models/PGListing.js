@@ -83,10 +83,19 @@ const PGListingSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "inactive", "expired"],
       default: "inactive"
+    },
+
+    documents: {
+      idProof: { type: String }, // URL to ID Proof
+      propertyProof: { type: String } // URL to Property Proof
     }
   },
   { timestamps: true }
 );
 
-export default mongoose.models.PGListing ||
-  mongoose.model("PGListing", PGListingSchema);
+// Force model recompilation to apply schema changes in dev
+if (mongoose.models.PGListing) {
+  delete mongoose.models.PGListing;
+}
+
+export default mongoose.model("PGListing", PGListingSchema);

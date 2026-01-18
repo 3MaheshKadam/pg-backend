@@ -34,6 +34,48 @@ async function updateUserStatus(userId, action) {
     return user;
 }
 
+
+
+export async function GET(req, { params }) {
+    try {
+        await dbConnect();
+
+        // 1. Auth Check
+        /* 
+        const decoded = await verifyAuth().catch(() => null);
+        if (!decoded || decoded.role !== "ADMIN") {
+            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+        }
+        */
+
+        const { id } = await params;
+        const user = await User.findById(id).select("-password").lean();
+
+        if (!user) {
+            return NextResponse.json({ message: "User not found" }, { status: 404 });
+        }
+
+        let business = null;
+        if (user.role === "PG_OWNER") {
+            // Fetch PG details
+            business = await PGListing.findOne({ ownerId: id }).lean();
+        } else if (user.role === "MESS_OWNER") {
+            // Fetch Mess details
+            business = await Mess.findOne({ ownerId: id }).lean();
+        }
+
+        // Return User merged with Business info
+        return NextResponse.json({
+            ...user,
+            business: business || null
+        });
+
+    } catch (error) {
+        console.error("Fetch Owner Details Error:", error);
+        return NextResponse.json({ message: "Server Error" }, { status: 500 });
+    }
+}
+
 export async function PATCH(req, { params }) {
     try {
         await dbConnect();
