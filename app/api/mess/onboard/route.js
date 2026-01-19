@@ -11,6 +11,12 @@ export async function POST(req) {
         await dbConnect();
         const formData = await req.formData();
 
+        // DEBUG LOGS
+        console.log("----- MESS ONBOARDING REQ RECEIVED -----");
+        const logData = {};
+        formData.forEach((value, key) => logData[key] = value);
+        console.log("FormData:", JSON.stringify(logData, null, 2));
+
         // Extractions
         const ownerName = formData.get("ownerName");
         const email = formData.get("email");
@@ -77,6 +83,14 @@ export async function POST(req) {
             mealTypes, // { breakfast: true... }
             license: licenseUrl,
             approved: false
+        });
+
+
+
+        console.log("Mess Onboarding Success:", {
+            userId: user._id,
+            messId: newMess._id,
+            message: "Mess Onboarding Request Submitted Successfully"
         });
 
         return NextResponse.json({

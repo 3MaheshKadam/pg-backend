@@ -3,6 +3,8 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import PGListing from "@/models/PGListing";
 import Mess from "@/models/Mess";
+import OwnerSubscription from "@/models/OwnerSubscription";
+import PlatformPlan from "@/models/PlatformPlan";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key_dev";
@@ -68,11 +70,23 @@ export async function GET(req) {
             // Only fetch plan details if active
             let planName = null;
             if (currentStatus === "active") {
-                const sub = await import("@/models/OwnerSubscription").then(mod => mod.default.findOne({
+                const sub = await OwnerSubscription.findOne({
                     ownerId: user._id,
                     status: "active"
-                }).sort({ createdAt: -1 }).populate("planId", "name"));
+                }).sort({ createdAt: -1 }).populate("planId", "name");
                 if (sub) planName = sub.planId?.name;
+            }
+
+            // Fetch Business Details
+            let business = null;
+            if (user.role === 'PG_OWNER') {
+                business = await PGListing.findOne({ ownerId: user._id })
+                    .select('name type pricing documents address status approved')
+                    .lean();
+            } else if (user.role === 'MESS_OWNER') {
+                business = await Mess.findOne({ ownerId: user._id })
+                    .select('name foodTypes mealTypes pricing capacity license approved')
+                    .lean();
             }
 
             return {
@@ -81,7 +95,8 @@ export async function GET(req) {
                     status: currentStatus.toUpperCase(),
                     planName: planName,
                     validTill: user.subscriptionExpiry ? new Date(user.subscriptionExpiry).toISOString().split('T')[0] : null
-                }
+                },
+                business: business || null
             };
         }));
 
@@ -127,14 +142,14 @@ export async function PATCH(req) {
         // If User is approved, we should also activate their Listings/Mess
         if (newStatus === "approved") {
             if (user.role === "PG_OWNER") {
-                await PGListing.updateMany({ ownerId: user._id }, { status: "active" });
+                await PGListing.updateMany({ ownerId: user._id }, { status: "active", approved: true });
             } else if (user.role === "MESS_OWNER") {
                 await Mess.updateMany({ ownerId: user._id }, { approved: true });
             }
         } else if (newStatus === "rejected") {
             // If rejected, we disable them
             if (user.role === "PG_OWNER") {
-                await PGListing.updateMany({ ownerId: user._id }, { status: "inactive" });
+                await PGListing.updateMany({ ownerId: user._id }, { status: "inactive", approved: false });
             } else if (user.role === "MESS_OWNER") {
                 await Mess.updateMany({ ownerId: user._id }, { approved: false });
             }

@@ -59,9 +59,19 @@ export async function POST(req) {
             return NextResponse.json({ message: "PG Listing not found for this user" }, { status: 404 });
         }
 
-        // 3. Strict Approval Check
+        // 3. Strict Approval Check with Lazy Sync
         if (!pg.approved) {
-            return NextResponse.json({ message: "PG is not approved by Admin yet" }, { status: 403 });
+            // If Owner is already approved, auto-approve their PG listing
+            const User = (await import("@/models/User")).default;
+            const owner = await User.findById(auth.userId);
+            if (owner && owner.status === 'approved') {
+                pg.approved = true;
+                pg.status = 'active';
+                await pg.save();
+                console.log(`[Lazy Sync] Auto-approved PG ${pg._id} for Approved Owner ${auth.userId}`);
+            } else {
+                return NextResponse.json({ message: "PG is not approved by Admin yet" }, { status: 403 });
+            }
         }
 
         const body = await req.json();

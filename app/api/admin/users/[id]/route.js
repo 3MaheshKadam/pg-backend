@@ -20,13 +20,13 @@ async function updateUserStatus(userId, action) {
     // Sync Listings
     if (newStatus === "approved") {
         if (user.role === "PG_OWNER") {
-            await PGListing.updateMany({ ownerId: user._id }, { status: "active" });
+            await PGListing.updateMany({ ownerId: user._id }, { status: "active", approved: true });
         } else if (user.role === "MESS_OWNER") {
             await Mess.updateMany({ ownerId: user._id }, { approved: true });
         }
     } else if (newStatus === "rejected") {
         if (user.role === "PG_OWNER") {
-            await PGListing.updateMany({ ownerId: user._id }, { status: "inactive" });
+            await PGListing.updateMany({ ownerId: user._id }, { status: "inactive", approved: false });
         } else if (user.role === "MESS_OWNER") {
             await Mess.updateMany({ ownerId: user._id }, { approved: false });
         }
@@ -40,15 +40,18 @@ export async function GET(req, { params }) {
     try {
         await dbConnect();
 
-        // 1. Auth Check
-        /* 
+        // 1. Auth Check - Allow ADMIN or Self Access
         const decoded = await verifyAuth().catch(() => null);
-        if (!decoded || decoded.role !== "ADMIN") {
-            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+        if (!decoded) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
-        */
 
         const { id } = await params;
+
+        // Authorization: Admin can see anyone, Users can see themselves
+        if (decoded.role !== "ADMIN" && decoded.userId !== id) {
+            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+        }
         const user = await User.findById(id).select("-password").lean();
 
         if (!user) {
@@ -64,6 +67,7 @@ export async function GET(req, { params }) {
             business = await Mess.findOne({ ownerId: id }).lean();
         }
 
+        // Return User merged with Business info
         // Return User merged with Business info
         return NextResponse.json({
             ...user,

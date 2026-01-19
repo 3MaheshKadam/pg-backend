@@ -108,14 +108,29 @@ export async function GET(req) {
             .populate("messId", "name address")
             .sort({ createdAt: -1 });
 
-        const formattedSubs = subs.map(s => ({
-            id: s._id,
-            messName: s.messId?.name || "Unknown Mess",
-            planName: s.plan.name,
-            status: s.status,
-            startDate: s.startDate.toISOString().split('T')[0],
-            endDate: s.endDate.toISOString().split('T')[0]
-        }));
+        const formattedSubs = subs.map(s => {
+            // Calculate Days Left
+            const now = new Date();
+            const start = new Date(s.startDate);
+            const end = new Date(s.endDate);
+
+            // If subscription hasn't started yet, daysLeft should be total duration
+            const calcFrom = now < start ? start : now;
+            const diffTime = end - calcFrom;
+            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            return {
+                id: s._id,
+                messName: s.messId?.name || "Unknown Mess",
+                planName: s.plan.name,
+                status: s.status,
+                price: s.plan.price, // Added Price
+                duration: s.plan.duration,
+                startDate: s.startDate.toISOString().split('T')[0],
+                endDate: s.endDate.toISOString().split('T')[0],
+                daysLeft: daysLeft > 0 ? daysLeft : 0 // Calculated Days Left
+            };
+        });
 
         return NextResponse.json(formattedSubs);
 

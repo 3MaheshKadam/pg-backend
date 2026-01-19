@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import PGListing from "@/models/PGListing";
+import User from "@/models/User"; // Ensure User model is registered
 import PGRoom from "@/models/PGRoom";
 
 export async function GET(req) {

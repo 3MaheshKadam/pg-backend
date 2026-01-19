@@ -29,7 +29,8 @@ export async function POST(req) {
       !name ||
       !phone ||
       !email ||
-      !address
+      !email
+      // !address // Removed as per request
     ) {
       return NextResponse.json(
         { message: "Missing required fields" },

@@ -22,47 +22,48 @@ export async function GET(req, { params }) {
         // Fetch Real Plans
         const realPlans = await MessPlan.find({ messId: id, status: "active" });
 
-        id: mess._id,
+        return NextResponse.json({
+            id: mess._id,
             name: mess.name,
-                location: mess.address, // mapping
-                    address: mess.address,
-                        price: mess.pricing?.monthlyPrice ? `₹${mess.pricing.monthlyPrice}` : "₹4500",
-                            rating: 4.6,
-                                reviews: 234,
-                                    type: mess.foodTypes.includes("nonveg") ? "Both" : "Veg",
-                                        owner: mess.ownerId?.name || "Mess Owner",
-                                            ownerPhone: mess.contact?.phone || "N/A",
-                                                description: mess.details?.description || "Healthy and hygienic homemade food.",
+            location: mess.address, // mapping
+            address: mess.address,
+            price: mess.pricing?.monthlyPrice ? `₹${mess.pricing.monthlyPrice}` : "₹4500",
+            rating: 4.6,
+            reviews: 234,
+            type: mess.foodTypes.includes("nonveg") ? "Both" : "Veg",
+            owner: mess.ownerId?.name || "Mess Owner",
+            ownerPhone: mess.contact?.phone || "N/A",
+            description: mess.details?.description || "Healthy and hygienic homemade food.",
 
-                                                    // Raw Fields for Edit Screen
-                                                    license: mess.license,
-                                                        pricing: mess.pricing,
-                                                            capacity: mess.capacity,
-                                                                foodTypes: mess.foodTypes,
-                                                                    mealTypes: mess.mealTypes,
+            // Raw Fields for Edit Screen
+            license: mess.license,
+            pricing: mess.pricing,
+            capacity: mess.capacity,
+            foodTypes: mess.foodTypes,
+            mealTypes: mess.mealTypes,
 
-                                                                        plans: realPlans.map(p => ({
-                                                                            id: p._id,
-                                                                            name: p.name,
-                                                                            price: `₹${p.pricing.price}`,
-                                                                            status: p.status, // Added field
-                                                                            meals: Object.keys(p.meals)
-                                                                                .filter(k => p.meals[k])
-                                                                                .map(k => k.charAt(0).toUpperCase() + k.slice(1)),
-                                                                            duration: `${p.pricing.durationDays} days`
-                                                                        })),
+            plans: realPlans.map(p => ({
+                id: p._id,
+                name: p.name,
+                price: `₹${p.pricing.price}`,
+                status: p.status, // Added field
+                meals: Object.keys(p.meals)
+                    .filter(k => p.meals[k])
+                    .map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+                duration: `${p.pricing.durationDays} days`
+            })),
 
-                                                                            todayMenu: [
-                                                                                { meal: "Lunch", items: "Dal, Rice, Roti", time: "1 PM" }
-                                                                            ],
-                                                                                features: [
-                                                                                    { name: "Hygienic", available: true, icon: "shield" }
-                                                                                ]
-    });
+            todayMenu: [
+                { meal: "Lunch", items: "Dal, Rice, Roti", time: "1 PM" }
+            ],
+            features: [
+                { name: "Hygienic", available: true, icon: "shield" }
+            ]
+        });
 
-} catch (error) {
-    return NextResponse.json({ message: "Server Error" }, { status: 500 });
-}
+    } catch (error) {
+        return NextResponse.json({ message: "Server Error" }, { status: 500 });
+    }
 }
 
 export async function PATCH(req, { params }) {

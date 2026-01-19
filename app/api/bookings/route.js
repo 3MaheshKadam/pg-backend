@@ -88,15 +88,32 @@ export async function GET(req) {
       .populate("pgId", "name location pricing") // Populate PG Name
       .sort({ createdAt: -1 });
 
-    const formattedBookings = bookings.map(b => ({
-      id: b._id,
-      pgName: b.pgId?.name || "Unknown PG",
-      location: b.pgId?.location,
-      roomType: b.roomType,
-      status: b.status,
-      date: b.requestedDate.toISOString().split('T')[0],
-      rent: b.financials?.rent
-    }));
+    const formattedBookings = bookings.map(b => {
+      // Calculate Dates assuming monthly cycle for UI display
+      const start = new Date(b.requestedDate);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 30); // Default 30 days cycle
+
+      const now = new Date();
+      // If subscription hasn't started yet, daysLeft should be total duration (from start date)
+      // Otherwise, it's from today.
+      const calcFrom = now < start ? start : now;
+      const diffTime = end - calcFrom;
+      const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      return {
+        id: b._id,
+        pgName: b.pgId?.name || "Unknown PG",
+        location: b.pgId?.location,
+        roomType: b.roomType,
+        status: b.status,
+        date: start.toISOString().split('T')[0], // Kept for backward compat
+        startDate: start.toISOString().split('T')[0],
+        endDate: end.toISOString().split('T')[0],
+        daysLeft: daysLeft > 0 ? daysLeft : 0,
+        rent: b.financials?.rent
+      };
+    });
 
     return NextResponse.json(formattedBookings);
 

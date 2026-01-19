@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Mess from "@/models/Mess";
+import User from "@/models/User"; // Ensure User model is registered
 
 export async function GET(req) {
     try {

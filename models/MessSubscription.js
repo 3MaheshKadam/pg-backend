@@ -69,7 +69,7 @@ const MessSubscriptionSchema = new mongoose.Schema(
       },
       address: {
         type: String,
-        required: true,
+        // required: true, // Made optional as per user request
       },
     },
 

@@ -51,3 +51,41 @@
     "__v": 0
   }
 }
+
+--- Debug Run (List API) 2026-01-19T05:03:30.507Z ---
+[API Check] Status: 200
+[API Check] Found Target User in List:
+{
+  "_id": "696d27f1d31fcbf9251efa3c",
+  "name": "Karan",
+  "email": "karan@gmail.com",
+  "phone": "1234567888",
+  "role": "PG_OWNER",
+  "status": "approved",
+  "subscriptionStatus": "inactive",
+  "createdAt": "2026-01-18T18:35:29.012Z",
+  "updatedAt": "2026-01-18T19:04:30.608Z",
+  "__v": 0,
+  "subscription": {
+    "status": "INACTIVE",
+    "planName": null,
+    "validTill": null
+  },
+  "business": {
+    "_id": "696d27f1d31fcbf9251efa3e",
+    "name": "Karan",
+    "type": "Girls",
+    "address": "Karan",
+    "pricing": {
+      "rentMin": 1000,
+      "rentMax": 1200,
+      "deposit": 0
+    },
+    "status": "active",
+    "approved": false,
+    "documents": {
+      "idProof": "https://res.cloudinary.com/dmlsgazvr/image/upload/v1768761327/mjhr86bkd0dn7bvsq4db.jpg",
+      "propertyProof": "https://res.cloudinary.com/dmlsgazvr/image/upload/v1768761328/ezzoxxz7y5dy99sqiuin.jpg"
+    }
+  }
+}

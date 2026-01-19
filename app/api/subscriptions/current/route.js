@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import OwnerSubscription from "@/models/OwnerSubscription";
+import PlatformPlan from "@/models/PlatformPlan"; // Ensure registered
+import User from "@/models/User";
 import { verifyAuth } from "@/lib/auth";
 
 export async function GET(req) {
@@ -13,8 +15,7 @@ export async function GET(req) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
 
-        // Efficient: Check User Model First
-        const User = (await import("@/models/User")).default;
+        // Efficient: Check User Model
         const user = await User.findById(auth.userId);
 
         // Lazy Expiry Check
