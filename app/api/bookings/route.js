@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import PGBooking from "@/models/PGBooking";
 import PGListing from "@/models/PGListing"; // To verify existence
+import PGRoom from "@/models/PGRoom"; // To verify inventory
 import { verifyAuth } from "@/lib/auth"; // Optional if we want to link to logged in user
 
 export async function POST(req) {
@@ -33,7 +34,9 @@ export async function POST(req) {
       emergencyName,
       emergencyContact,
       rent,
-      deposit
+      deposit,
+      aadhaar, // URL
+      pan      // URL
     } = body;
 
     // Verify PG
@@ -41,6 +44,36 @@ export async function POST(req) {
     if (!pg) {
       return NextResponse.json({ message: "PG Listing not found" }, { status: 404 });
     }
+
+    // --- INVENTORY CHECK START ---
+    // 1. Find all rooms of this type in this PG
+    const rooms = await PGRoom.find({
+      pgId: listingId,
+      type: roomType, // e.g., "Single"
+      status: "active"
+    });
+
+    if (!rooms || rooms.length === 0) {
+      return NextResponse.json({ message: `No "${roomType}" rooms available in this PG.` }, { status: 400 });
+    }
+
+    // 2. Calculate Total Capacity vs Total Occupied
+    let totalCapacity = 0;
+    let totalOccupied = 0;
+
+    rooms.forEach(room => {
+      totalCapacity += (room.capacity || 0);
+      totalOccupied += (room.occupied || 0);
+    });
+
+    const availableBeds = totalCapacity - totalOccupied;
+
+    if (availableBeds <= 0) {
+      return NextResponse.json({
+        message: `Sorry, all "${roomType}" rooms are currently full.`
+      }, { status: 400 });
+    }
+    // --- INVENTORY CHECK END ---
 
     const newBooking = await PGBooking.create({
       userId, // Linked to the authenticated user
@@ -59,6 +92,10 @@ export async function POST(req) {
       financials: {
         rent,
         deposit
+      },
+      documents: {
+        aadhaar,
+        pan
       },
       status: "pending"
     });

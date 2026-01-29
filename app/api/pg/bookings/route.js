@@ -26,12 +26,17 @@ export async function GET(req) {
             id: booking._id,
             user: {
                 name: booking.userInfo?.name || booking.userId?.name || "Unknown",
+                email: booking.userInfo?.email || booking.userId?.email || "N/A",
                 phone: booking.userInfo?.phone || booking.userId?.phone || "N/A",
-                gender: booking.userInfo?.gender || "N/A"
+                gender: booking.userInfo?.gender || "N/A",
+                address: booking.userInfo?.address || "N/A",
+                emergencyContact: booking.userInfo?.emergencyContact ?
+                    `${booking.userInfo.emergencyName || ''} (${booking.userInfo.emergencyContact})` : "N/A"
             },
             roomType: booking.roomType,
             requestedDate: booking.requestedDate.toISOString().split('T')[0],
-            status: booking.status
+            status: booking.status,
+            documents: booking.documents // Pass documents to frontend
         }));
 
         return NextResponse.json(formattedBookings);

@@ -24,6 +24,11 @@ const PGBookingSchema = new mongoose.Schema(
             deposit: Number
         },
 
+        documents: {
+            aadhaar: { type: String, required: false }, // URL to uploaded Aadhaar
+            pan: { type: String, default: "" }     // URL to uploaded PAN
+        },
+
         pgId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "PGListing",
