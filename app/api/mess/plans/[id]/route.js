@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import MessPlan from "@/models/MessPlan";
+import { verifyAuth } from "@/lib/auth";
 
 // Helper to Format ID
 const formatPlan = (plan) => ({
@@ -101,6 +102,13 @@ export async function PUT(req, { params }) {
 export async function DELETE(req, { params }) {
     try {
         await dbConnect();
+
+        // 1. Auth Check
+        const authRecord = await verifyAuth().catch(() => null);
+        if (!authRecord) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        }
+
         const { id } = await params; // Next.js 15 await
 
         const deletedPlan = await MessPlan.findByIdAndUpdate(

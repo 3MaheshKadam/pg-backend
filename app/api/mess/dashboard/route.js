@@ -3,8 +3,11 @@ import dbConnect from "@/lib/dbConnect";
 import Mess from "@/models/Mess"; // You might need to link user to mess first
 import MessSubscription from "@/models/MessSubscription";
 import MessPlan from "@/models/MessPlan";
+import MessOrder from "@/models/MessOrder";
 import mongoose from "mongoose";
 import { verifyAuth } from "@/lib/auth";
+
+export const dynamic = 'force-dynamic';
 
 // Helper to get stats (Dynamic)
 async function getStats(ownerId) {
@@ -23,7 +26,17 @@ async function getStats(ownerId) {
     ]);
 
     const monthlyRevenue = revenueResult[0]?.total || 0;
-    const todaysOrders = 0; // Dynamic Order model doesn't exist yet
+
+    // Count today's orders
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const todaysOrders = await MessOrder.countDocuments({
+        ownerId,
+        orderDate: { $gte: startOfDay, $lte: endOfDay }
+    });
 
     return {
         activePlans,
@@ -44,20 +57,45 @@ export async function GET(req) {
         // Pass ownerId (userId) to getStats instead of messId
         const stats = await getStats(auth.userId);
 
+        // Fetch the owner's mess to get the menu
+        const activeMess = await Mess.findOne({ ownerId: auth.userId });
+
+        const todayMenu = [];
+        if (activeMess && activeMess.todayMenu) {
+            const { breakfast, lunch, dinner, special } = activeMess.todayMenu;
+            if (breakfast) todayMenu.push({ meal: 'Breakfast', time: '7:00 AM - 10:00 AM', items: breakfast, icon: 'sunny-outline' });
+            if (lunch) todayMenu.push({ meal: 'Lunch', time: '12:00 PM - 3:00 PM', items: lunch, icon: 'restaurant-outline' });
+            if (dinner) todayMenu.push({ meal: 'Dinner', time: '7:00 PM - 10:00 PM', items: dinner, icon: 'moon-outline' });
+            if (special) todayMenu.push({ meal: 'Special', time: 'All Day', items: special, icon: 'star-outline' });
+        }
+
+        // Fetch Recent Orders
+        const recentOrdersRaw = await MessOrder.find({ ownerId: auth.userId })
+            .sort({ orderDate: -1 })
+            .limit(5);
+
+        const recentOrders = recentOrdersRaw.map(order => ({
+            id: order._id,
+            customerName: order.customerName,
+            planName: order.planName,
+            status: order.status,
+            time: order.timeSlot || new Date(order.orderDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+
         return NextResponse.json({
             stats,
-            todayMenu: [], // Empty until Menu Module is built
-            recentOrders: [], // Empty until Order Module is built
+            todayMenu,
+            recentOrders,
             performance: {
-                totalOrders: 0,
+                totalOrders: stats.todaysOrders, // Placeholder logic for now
                 ordersGrowth: 0,
                 newSubscribers: stats.totalSubscribers,
                 subscribersGrowth: 0
             },
             subscriptionRate: {
-                percentage: 0,
+                percentage: Math.min(stats.totalSubscribers, 100), // Placeholder logic
                 subscribed: stats.totalSubscribers,
-                capacityLeft: 0
+                capacityLeft: 100 - Math.min(stats.totalSubscribers, 100)
             }
         });
 

@@ -9,7 +9,7 @@ export async function GET(req) {
         const { searchParams } = new URL(req.url);
         const type = searchParams.get("type");
 
-        const query = {};
+        const query = { isActive: true };
         if (type) query.type = type;
 
         const plans = await PlatformPlan.find(query).sort({ price: 1 });

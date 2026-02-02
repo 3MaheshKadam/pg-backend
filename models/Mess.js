@@ -50,6 +50,12 @@ const MessSchema = new mongoose.Schema(
             type: String,
             enum: ["active", "inactive", "expired"],
             default: "inactive"
+        },
+        todayMenu: {
+            breakfast: { type: String, default: "" },
+            lunch: { type: String, default: "" },
+            dinner: { type: String, default: "" },
+            special: { type: String, default: "" }
         }
     },
     { timestamps: true }

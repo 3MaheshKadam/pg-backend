@@ -8,7 +8,8 @@ import PGListing from "@/models/PGListing";
 export async function GET(req, { params }) {
   try {
     await dbConnect();
-    const listing = await PGListing.findById(params.id);
+    const { id } = await params;
+    const listing = await PGListing.findById(id);
 
     if (!listing || listing.status === "deleted") {
       return NextResponse.json(
@@ -32,10 +33,11 @@ export async function GET(req, { params }) {
 export async function PATCH(req, { params }) {
   try {
     await dbConnect();
+    const { id } = await params;
     const body = await req.json();
 
     const updatedListing = await PGListing.findByIdAndUpdate(
-      params.id,
+      id,
       {
         name: body.name,
         type: body.type,
@@ -79,9 +81,10 @@ export async function PATCH(req, { params }) {
 export async function DELETE(req, { params }) {
   try {
     await dbConnect();
+    const { id } = await params;
 
     const deleted = await PGListing.findByIdAndUpdate(
-      params.id,
+      id,
       { status: "deleted" },
       { new: true }
     );

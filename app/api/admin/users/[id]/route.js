@@ -7,7 +7,8 @@ import { verifyAuth } from "@/lib/auth";
 
 // Helper to handle user status update
 async function updateUserStatus(userId, action) {
-    const newStatus = action === "approve" ? "approved" : "rejected";
+    let newStatus = action === "approve" ? "approved" : "rejected";
+    if (action === "suspend") newStatus = "suspended";
 
     const user = await User.findByIdAndUpdate(
         userId,
@@ -17,14 +18,14 @@ async function updateUserStatus(userId, action) {
 
     if (!user) return null;
 
-    // Sync Listings
+    // Sync Listings (suspend should deactivate listings like reject)
     if (newStatus === "approved") {
         if (user.role === "PG_OWNER") {
             await PGListing.updateMany({ ownerId: user._id }, { status: "active", approved: true });
         } else if (user.role === "MESS_OWNER") {
             await Mess.updateMany({ ownerId: user._id }, { approved: true });
         }
-    } else if (newStatus === "rejected") {
+    } else if (newStatus === "rejected" || newStatus === "suspended") {
         if (user.role === "PG_OWNER") {
             await PGListing.updateMany({ ownerId: user._id }, { status: "inactive", approved: false });
         } else if (user.role === "MESS_OWNER") {
@@ -94,7 +95,7 @@ export async function PATCH(req, { params }) {
         const { id } = await params; // Next.js 15+ params are promises, assuming standard here or await it
         const { action } = await req.json();
 
-        if (!action || !["approve", "reject"].includes(action)) {
+        if (!action || !["approve", "reject", "suspend"].includes(action)) {
             return NextResponse.json({ message: "Invalid action" }, { status: 400 });
         }
 

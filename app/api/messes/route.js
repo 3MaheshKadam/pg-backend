@@ -65,3 +65,39 @@ export async function GET(req) {
         return NextResponse.json({ message: "Server Error" }, { status: 500 });
     }
 }
+
+import { verifyAuth } from "@/lib/auth";
+
+export async function POST(req) {
+    try {
+        await dbConnect();
+        const auth = await verifyAuth();
+        if (!auth || !auth.userId) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        }
+
+        // Check if user already has a mess
+        const existingMess = await Mess.findOne({ ownerId: auth.userId });
+        if (existingMess) {
+            return NextResponse.json({ message: "You already have a mess listing" }, { status: 400 });
+        }
+
+        const body = await req.json();
+        // Validation (simplified, rely on schema or client for full validation)
+        if (!body.name || !body.address) {
+            return NextResponse.json({ message: "Name and Address are required" }, { status: 400 });
+        }
+
+        const newMess = await Mess.create({
+            ...body,
+            ownerId: auth.userId,
+            approved: false // Default to pending
+        });
+
+        return NextResponse.json({ message: "Mess created successfully", mess: newMess }, { status: 201 });
+
+    } catch (error) {
+        console.error("Create Mess Error:", error);
+        return NextResponse.json({ message: "Failed to create mess" }, { status: 500 });
+    }
+}
