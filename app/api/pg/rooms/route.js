@@ -30,7 +30,8 @@ export async function GET(req) {
             occupied: room.occupied,
             amenities: room.amenities,
             status: room.status,
-            images: room.images
+            images: room.images,
+            description: room.description
         }));
 
         return NextResponse.json(formattedRooms);

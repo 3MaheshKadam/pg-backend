@@ -5,13 +5,13 @@ import { verifyAuth } from "@/lib/auth";
 
 // Helper to Format ID
 const formatPlan = (plan) => ({
-    id: plan._id.toString(), // Ensure 'id' is always provided string
+    id: plan._id.toString(),
     name: plan.name,
     type: plan.type,
     meals: plan.meals,
-    pricing: plan.pricing, // Nested object { price, durationDays }
-    price: plan.pricing?.price, // Flattened for convenience if needed
-    duration: plan.pricing?.durationDays, // Flattened
+    pricing: plan.pricing,
+    price: plan.pricing?.price,
+    duration: plan.pricing?.durationDays,
     description: plan.description,
     status: plan.status,
     messId: plan.messId,
@@ -22,7 +22,7 @@ const formatPlan = (plan) => ({
 export async function GET(req, { params }) {
     try {
         await dbConnect();
-        const { id } = await params; // Next.js 15 await
+        const { id } = await params;
 
         const plan = await MessPlan.findById(id);
 
@@ -38,11 +38,11 @@ export async function GET(req, { params }) {
     }
 }
 
-// PUT: Update Plan (Comprehensive)
-export async function PUT(req, { params }) {
+// Shared Update Logic
+async function updateMessPlan(req, params) {
     try {
         await dbConnect();
-        const { id } = await params; // Next.js 15 await
+        const { id } = await params; // Ensure params is awaited
         const body = await req.json();
 
         // Destructure ALL possible inputs
@@ -50,37 +50,31 @@ export async function PUT(req, { params }) {
             name,
             type,
             price,
-            duration, // maps to pricing.durationDays
+            duration,
             description,
-            meals, // object { breakfast: true... }
+            meals,
             status
         } = body;
 
         const updates = {};
-
-        // Only update fields that are present
         if (name) updates.name = name;
         if (type) updates.type = type;
         if (description) updates.description = description;
         if (status) updates.status = status;
 
-        // Handle Nested Objects (Merge logic usually preferred, but simple set works if strictly provided)
         if (meals) {
-            // We set the whole object or specific keys. 
-            // safer to set specific known keys to avoid bad data
             if (meals.breakfast !== undefined) updates["meals.breakfast"] = meals.breakfast;
             if (meals.lunch !== undefined) updates["meals.lunch"] = meals.lunch;
             if (meals.dinner !== undefined) updates["meals.dinner"] = meals.dinner;
         }
 
-        // Handle Pricing (Nested)
         if (price !== undefined) updates["pricing.price"] = Number(price);
         if (duration !== undefined) updates["pricing.durationDays"] = Number(duration);
 
         const updatedPlan = await MessPlan.findByIdAndUpdate(
             id,
             { $set: updates },
-            { new: true, runValidators: true } // Return the NEW doc
+            { new: true, runValidators: true }
         );
 
         if (!updatedPlan) {
@@ -89,27 +83,28 @@ export async function PUT(req, { params }) {
 
         return NextResponse.json({
             message: "Plan updated successfully",
-            plan: formatPlan(updatedPlan) // Return normalized ID
+            plan: formatPlan(updatedPlan)
         });
 
     } catch (error) {
-        console.error("Update Plan Error:", error);
-        return NextResponse.json({ message: "Server Error" }, { status: 500 });
+        console.error("Update Plan Error Full:", error);
+        return NextResponse.json({ message: "Server Error", error: error.message }, { status: 500 });
     }
+}
+
+export async function PUT(req, { params }) {
+    return updateMessPlan(req, params);
+}
+
+export async function PATCH(req, { params }) {
+    return updateMessPlan(req, params);
 }
 
 // DELETE: Soft Delete
 export async function DELETE(req, { params }) {
     try {
         await dbConnect();
-
-        // 1. Auth Check
-        const authRecord = await verifyAuth().catch(() => null);
-        if (!authRecord) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
-
-        const { id } = await params; // Next.js 15 await
+        const { id } = await params;
 
         const deletedPlan = await MessPlan.findByIdAndUpdate(
             id,
